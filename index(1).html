@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Don't Press The Button! 😂</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:flex; justify-content:center; align-items:center;
+    font-family:Arial,Helvetica,sans-serif;
+    background:linear-gradient(135deg,#171717,#292929);
+    color:#fff; padding:20px;
+  }
+  .game{
+    width:min(760px,100%); text-align:center;
+  }
+  h1{font-size:clamp(28px,6vw,52px);margin:0 0 8px}
+  .subtitle{color:#bbb;margin:0 0 18px}
+  .stats{
+    display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:14px
+  }
+  .stat{
+    background:#222;border:1px solid #444;border-radius:14px;padding:10px 18px;
+    min-width:110px;font-weight:bold
+  }
+  .arena{
+    position:relative;width:100%;height:min(62vh,460px);min-height:340px;
+    background:#f4f4f4;border:5px solid #111;border-radius:24px;
+    overflow:hidden;box-shadow:0 15px 40px #0008;
+  }
+  #message{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;color:#222;font-size:clamp(20px,4vw,34px);font-weight:900;
+    padding:25px;z-index:5
+  }
+  #message small{font-size:15px;font-weight:normal;margin-top:10px;color:#555}
+  button{font:inherit}
+  #target{
+    position:absolute;z-index:4;border:0;border-radius:18px;
+    background:#e53935;color:white;font-weight:900;font-size:18px;
+    padding:16px 24px;cursor:pointer;
+    box-shadow:0 7px 0 #9b1c1c,0 10px 20px #0004;
+    user-select:none;touch-action:manipulation;
+    transition:left .16s ease,top .16s ease,transform .1s ease;
+  }
+  #target:active{transform:translateY(6px);box-shadow:0 1px 0 #9b1c1c}
+  .fake{
+    position:absolute;z-index:3;border:3px dashed #777;border-radius:14px;
+    background:#fff;color:#444;padding:12px 16px;font-weight:800;cursor:pointer;
+  }
+  #start{
+    margin-top:16px;padding:13px 25px;border:0;border-radius:14px;
+    background:#ffca28;color:#171717;font-weight:900;cursor:pointer;
+    box-shadow:0 5px 0 #b88c00
+  }
+  #start:active{transform:translateY(4px);box-shadow:0 1px 0 #b88c00}
+  #status{min-height:28px;margin:13px 0 0;font-weight:800}
+  .float{
+    position:absolute;z-index:10;font-size:24px;font-weight:900;pointer-events:none;
+    animation:floatUp .75s ease forwards
+  }
+  @keyframes floatUp{
+    from{opacity:1;transform:translateY(0) scale(1)}
+    to{opacity:0;transform:translateY(-65px) scale(1.3)}
+  }
+  .shake{animation:shake .25s linear}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}
+    75%{transform:translateX(7px)}
+  }
+  @media(max-width:520px){
+    body{padding:12px}.arena{min-height:330px}.stat{min-width:90px;padding:9px 12px}
+    #target{font-size:15px;padding:14px 18px}
+  }
+</style>
+</head>
+<body>
+<main class="game" id="game">
+  <h1>DON'T PRESS THE BUTTON! 😂</h1>
+  <p class="subtitle">Seriously. Whatever you do... DON'T press it. 😈</p>
+
+  <div class="stats">
+    <div class="stat">🤣 Score<br><span id="score">0</span></div>
+    <div class="stat">⏱️ Time<br><span id="time">30</span>s</div>
+    <div class="stat">🔥 Hits<br><span id="hits">0</span></div>
+  </div>
+
+  <section class="arena" id="arena" aria-label="Game area">
+    <div id="message">
+      ⚠️ YOU HAVE BEEN WARNED
+      <small>Press "Start Chaos" if you dare...</small>
+    </div>
+    <button id="target" hidden>DON'T PRESS ME!</button>
+  </section>
+
+  <div id="status">The button is currently judging you. 👀</div>
+  <button id="start">START CHAOS 😂</button>
+  <p style="color:#999;font-size:13px">Tip: The button gets more annoying as your score increases.</p>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const arena = document.getElementById("arena");
+  const target = document.getElementById("target");
+  const message = document.getElementById("message");
+  const startBtn = document.getElementById("start");
+  const scoreEl = document.getElementById("score");
+  const timeEl = document.getElementById("time");
+  const hitsEl = document.getElementById("hits");
+  const statusEl = document.getElementById("status");
+
+  let score = 0;
+  let hits = 0;
+  let time = 30;
+  let running = false;
+  let timer = null;
+  let difficulty = 0;
+
+  const messages = [
+    "😂 NICE TRY!",
+    "🤣 YOU ACTUALLY PRESSED IT!",
+    "🤦 AGAIN?!",
+    "😈 YOU'RE FALLING FOR IT!",
+    "🐔 THE BUTTON IS SCARED!",
+    "💀 SKILL ISSUE!",
+    "🤡 BUTTON CHASER!",
+    "🧠 USE YOUR BRAIN!",
+    "🏃 CATCH ME!",
+    "😭 STOP CLICKING ME!"
+  ];
+
+  const buttonNames = [
+    "DON'T PRESS ME!",
+    "WHY ARE YOU DOING THIS?!",
+    "I'M INNOCENT 😭",
+    "STOP! 😂",
+    "NOOOO!",
+    "CLICK ME? 😏",
+    "I HATE YOU 🤣",
+    "LEAVE ME ALONE!"
+  ];
+
+  function randomPosition() {
+    const padding = 10;
+    const maxX = Math.max(padding, arena.clientWidth - target.offsetWidth - padding);
+    const maxY = Math.max(70, arena.clientHeight - target.offsetHeight - padding);
+
+    const x = padding + Math.random() * Math.max(1, maxX - padding);
+    const y = 55 + Math.random() * Math.max(1, maxY - 55);
+
+    target.style.left = x + "px";
+    target.style.top = y + "px";
+  }
+
+  function popup(text) {
+    const el = document.createElement("div");
+    el.className = "float";
+    el.textContent = text;
+    el.style.left = Math.max(5, target.offsetLeft) + "px";
+    el.style.top = Math.max(45, target.offsetTop - 5) + "px";
+    arena.appendChild(el);
+    setTimeout(() => el.remove(), 750);
+  }
+
+  function addFakeButtons() {
+    document.querySelectorAll(".fake").forEach(el => el.remove());
+
+    if (score < 5) return;
+
+    const count = Math.min(3, Math.floor(score / 5));
+
+    for (let i = 0; i < count; i++) {
+      const fake = document.createElement("button");
+      fake.className = "fake";
+      fake.textContent = ["FAKE 😂", "NOT ME!", "CLICK THIS?"][i % 3];
+
+      fake.style.left = (10 + Math.random() * Math.max(1, arena.clientWidth - 120)) + "px";
+      fake.style.top = (60 + Math.random() * Math.max(1, arena.clientHeight - 110)) + "px";
+
+      fake.addEventListener("click", () => {
+        if (!running) return;
+        score = Math.max(0, score - 2);
+        scoreEl.textContent = score;
+        statusEl.textContent = "🤣 HA! THAT WAS FAKE! -2 POINTS";
+        popup("FAKE! -2");
+        arena.classList.remove("shake");
+        void arena.offsetWidth;
+        arena.classList.add("shake");
+      });
+
+      arena.appendChild(fake);
+    }
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(timer);
+    timer = null;
+    target.hidden = true;
+    document.querySelectorAll(".fake").forEach(el => el.remove());
+
+    let title = "🏁 GAME OVER!";
+    if (score >= 25) title = "🏆 BUTTON DESTROYER!";
+    else if (score >= 15) title = "🔥 BUTTON MENACE!";
+    else if (score >= 8) title = "😎 NOT BAD!";
+    else title = "😂 THE BUTTON WON!";
+
+    message.innerHTML =
+      title +
+      "<small>Your final score: " + score +
+      "<br>Press Play Again to embarrass the button.</small>";
+    message.style.display = "flex";
+    statusEl.textContent = "The button survived. Barely. 😭";
+    startBtn.textContent = "PLAY AGAIN 😂";
+  }
+
+  function startGame() {
+    clearInterval(timer);
+
+    score = 0;
+    hits = 0;
+    time = 30;
+    difficulty = 0;
+    running = true;
+
+    scoreEl.textContent = "0";
+    hitsEl.textContent = "0";
+    timeEl.textContent = "30";
+
+    document.querySelectorAll(".fake").forEach(el => el.remove());
+
+    message.style.display = "none";
+    target.hidden = false;
+    target.textContent = "DON'T PRESS ME!";
+    startBtn.textContent = "RESTART";
+    statusEl.textContent = "😈 Find it. Press it. Regret it.";
+
+    requestAnimationFrame(randomPosition);
+
+    timer = setInterval(() => {
+      time--;
+      timeEl.textContent = String(time);
+
+      if (time <= 0) endGame();
+    }, 1000);
+  }
+
+  target.addEventListener("click", () => {
+    if (!running) return;
+
+    score++;
+    hits++;
+    difficulty++;
+
+    scoreEl.textContent = String(score);
+    hitsEl.textContent = String(hits);
+
+    popup(messages[score % messages.length]);
+    statusEl.textContent = messages[score % messages.length];
+
+    target.textContent = buttonNames[Math.floor(Math.random() * buttonNames.length)];
+
+    if (score >= 10) {
+      target.style.fontSize = (14 + Math.random() * 7) + "px";
+    }
+
+    randomPosition();
+
+    if (score % 4 === 0) {
+      addFakeButtons();
+    }
+  });
+
+  /* The button occasionally runs away before being clicked. */
+  target.addEventListener("pointerenter", () => {
+    if (!running || score < 4) return;
+
+    if (Math.random() < Math.min(0.75, 0.2 + score / 40)) {
+      randomPosition();
+      statusEl.textContent = "🏃 HEY! COME BACK HERE!";
+    }
+  });
+
+  startBtn.addEventListener("click", startGame);
+
+  window.addEventListener("resize", () => {
+    if (running) randomPosition();
+  });
+})();
+</script>
+</body>
+</html>
